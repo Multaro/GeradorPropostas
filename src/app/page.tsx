@@ -1,101 +1,102 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useContext } from 'react';
+import { ListInput } from './components/ListInput';
+import { ListDisplay } from './components/ListDisplay';
+import { SearchSection } from './components/SearchSection';
+import { SearchResults } from './components/SearchResults';
+import { GlobalListContext } from './context/global-list';
+import { List } from './types/list';
+import { Portal } from './types/portal';
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const { portals, addPortal, removePortal } = useContext(GlobalListContext);
+  const [lists, setLists] = useState<List[]>([]);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const handleAddList = (name: string, content: string) => {
+    let portalList: Portal[] = [];
+
+    const contents = content
+      .split('\n')
+      .filter(content => content.trim() !== '')
+      .map(content => content.replace(/\s+/g, ''));
+    
+    contents.forEach(portal => {
+      const infos = portal.split('|');
+
+      const portalName = infos[0] ?? '';
+      const DA = (infos[1]?.replace('DA', '')) ?? '';
+      const price = parseFloat(infos[2].replace(/[^\d,]+/g, '').replace(',', '.'));
+
+      const newPortal: Portal = {
+        portal: portalName,
+        DA,
+        price
+      };
+
+      portalList.push(newPortal);
+    });
+
+    const newList: List = {
+      id: crypto.randomUUID(),
+      name,
+      content,
+      portals: portalList
+    };
+
+    addPortal(newList)
+    setLists([...lists, newList]);
+  };
+
+  const handleRemoveList = (id: string) => {
+    removePortal(id);
+  };
+
+  const handleSearch = (listId: string, searchTerms: string) => {
+    setSearchResults([]);
+    const selectedList = portals.find(list => list.id === listId);
+    if (!selectedList) return;
+
+    const terms = searchTerms.split(/[ ,]+/);
+
+    const results: any[] = selectedList.portals.filter(portal => 
+        terms.some(term => portal.portal.toLowerCase().includes(term.toLowerCase()))
+    );
+
+    const totalPrice = results.reduce((sum, portal) => sum + portal.price, 0);
+    results.push({ totalPrice });
+
+    setSearchResults(results);
+  };
+  
+  return (
+    <main className="container mx-auto py-8 px-4">
+      <h1 className="text-3xl font-bold mb-8 text-center">Gerador de Propostas</h1>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold mb-4">Nova Lista</h2>
+          <ListInput onAddList={handleAddList} />
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+        
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold mb-4">Listas Salvas</h2>
+          <ListDisplay lists={portals} onRemoveList={handleRemoveList} />
+        </div>
+      </div>
+
+      <div className="space-y-6">
+        <div className="bg-card p-6 rounded-lg">
+          <h2 className="text-xl font-semibold mb-4">Gerar Proposta</h2>
+          <SearchSection lists={portals} onSearch={handleSearch} />
+        </div>
+
+        <div className="bg-card p-6 rounded-lg">
+          <h2 className="text-xl font-semibold mb-4">Resultados</h2>
+          <SearchResults results={searchResults} />
+        </div>
+      </div>
+    </main>
   );
 }
